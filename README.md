@@ -1,0 +1,24 @@
+
+# Core2_AVI_AudioMaster_M5GFX (SD.h / no-static)
+
+**SDドライバを Arduino の `SD.h` に置き換え**た版です。その他の構成は、
+- **M5Unified不使用**（AXP/SPK_ENに M5Core2 ライブラリのみ）
+- **M5GFX** による MJPEG フレーム描画
+- **I2S（driver/i2s）直叩き**, **APLL**, **DMAゼロクリア**, **tx_desc_auto_clear**
+- **音主（Audio‑master）同期**
+
+を前版から継承しています。
+
+## 使い方
+1. microSD を FAT32 で用意し、ルートに `movie.avi`（**MJPEG + PCM(16‑bit/44.1k/モノ)**）を配置
+2. PlatformIO → Upload
+3. 起動後、`SD.begin()` により **/sdcard** にVFSマウントされ、`/sdcard/movie.avi` を `fopen()` 経由で `avilib` が読み込みます
+
+## ピン/初期化
+- SD: VSPI (`SCLK=18, MISO=19, MOSI=23, CS=4`) → `SPI.begin(...)` → `SD.begin(4, SPI, 25MHz)`
+- I2S: Core2 内蔵スピーカ（NS4168）向け `BCK=12, LRCK=0, DOUT=2`
+
+## 注意
+- もしボード/SDカードの相性で 25MHz が不安定な場合は、`SD.begin(SD_CS, SPI, 20000000)` に下げてください。
+- `avilib` は `fopen` ベースのため、**Arduino の SD 実装が /sdcard にVFSマウントされていること**が前提です（ESP32 Arduino では一般的な挙動）。
+
