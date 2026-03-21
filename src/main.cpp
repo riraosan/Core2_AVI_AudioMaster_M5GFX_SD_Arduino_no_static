@@ -6,28 +6,33 @@
 #include <SD.h>         // SD(SPI)
 #include <SPI.h>
 #include <memory>
+#include "ESP32_8BIT_CVBS.h" // 画面制御（CVBS）
 
 // ====== Core2 内蔵スピーカ（I2Sアンプ: NS4168）配線 ======
-#define I2S_PORT I2S_NUM_0
+#define I2S_PORT I2S_NUM_1
 #define I2S_BCK 12
 #define I2S_LRCK 0
 #define I2S_DOUT 2
 
 #ifndef AUDIO_SR
-#define AUDIO_SR 44100
+#define AUDIO_SR 48000
 #endif
 #ifndef AUDIO_BITS
 #define AUDIO_BITS 16
 #endif
 
-// Core2 microSD（VSPI）
+// Core2 microSD
 #define SD_CS 4
 #define SD_SCLK 18
 #define SD_MISO 19
 #define SD_MOSI 23
 
 // ====== 画面 ======
-M5GFX display;
+#if 1
+ESP32_8BIT_CVBS display; // （CVBS出力）
+#else
+M5GFX display; // （Core2内蔵LCD）
+#endif
 
 // ====== 再生状態（音主時間）======
 volatile uint64_t g_samples_out_total = 0;
@@ -75,9 +80,9 @@ void i2s_init_core2()
   cfg.communication_format = I2S_COMM_FORMAT_I2S;
 #endif
   cfg.intr_alloc_flags = ESP_INTR_FLAG_LEVEL1;
-  cfg.dma_buf_count = 8;
-  cfg.dma_buf_len = 512;
-  cfg.use_apll = true;           // APLLで精度向上
+  cfg.dma_buf_count = 12;
+  cfg.dma_buf_len = 1024;
+  cfg.use_apll = false;
   cfg.tx_desc_auto_clear = true; // 欠損時のガチャ低減
   ESP_ERROR_CHECK(i2s_driver_install(I2S_PORT, &cfg, 0, NULL));
 
@@ -95,7 +100,8 @@ void i2s_init_core2()
 bool sd_begin_arduino()
 {
   SPI.begin(SD_SCLK, SD_MISO, SD_MOSI, SD_CS);
-  return SD.begin(SD_CS, SPI, 25000000); // 必要なら 20MHz へ
+  SPI.setDataMode(SPI_MODE3);
+  return SD.begin(SD_CS, SPI, 80000000); // 必要なら 20MHz へ
 }
 
 // ====== 音声書き込み ======
@@ -383,7 +389,7 @@ void play_avi_movi(File &f, const AviMain &avi, const StreamInfo &v, const Strea
     }
     else if (sid == audioStreamIdx && isWB)
     {
-      const size_t CHUNK = 2048;
+      const size_t CHUNK = 8192;
       size_t remain = csz;
       while (remain)
       {
@@ -407,11 +413,11 @@ void setup()
   delay(200);
 
   display.begin();
-  display.setRotation(1);
+  // display.setRotation(1);
   display.fillScreen(TFT_BLACK);
   display.setTextColor(TFT_WHITE, TFT_BLACK);
   display.setTextSize(2);
-  display.drawString("AVI (MJPEG+PCM) - SD.h / no avilib", 6, 6);
+  display.drawString("AVI (MJPEG+PCM)", 6, 6);
 
   // AXP: SPK_EN
   M5.begin(true, true, true, true);
@@ -426,13 +432,13 @@ void setup()
     display.drawString("SD.begin failed", 6, 30);
     return;
   }
-  if (!SD.exists("/movie.avi"))
+  if (!SD.exists("/output.avi"))
   {
-    display.drawString("/movie.avi not found", 6, 30);
+    display.drawString("/output.avi not found", 6, 30);
     return;
   }
 
-  File f = SD.open("/movie.avi", FILE_READ);
+  File f = SD.open("/output.avi", FILE_READ);
   AviMain avi;
   StreamInfo v, a;
   int vid = -1, aud = -1;
@@ -448,4 +454,7 @@ void setup()
   display.drawString("Done", 6, 52);
 }
 
-void loop() { delay(1000); }
+void loop()
+{
+  delay(1000);
+}
