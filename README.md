@@ -12,9 +12,15 @@
 
 ## 使い方
 
-1. microSD を FAT32 で用意し、ルートに `output.avi`（**MJPEG + PCM(16‑bit/44.1k/モノ)**）を配置
+1. microSD を FAT32 で用意し、ルートに `output.avi`（**MJPEG + PCM(16‑bit/48.0k/モノ)**）を配置
 2. PlatformIO → Upload
 3. 起動後、`SD.begin()` でマウントされ、`/output.avi` を読み込みます。
+
+## AVIファイル作成方法
+
+```
+ffmpeg -y -i input.mp4 -ac 1 -ar 48000 -c:a pcm_s16le -c:v mjpeg -q:v 7 -vf "fps=15,scale=-1:240:flags=lanczos,crop=320:240:(in_w-320)/2:0" output.avi
+```
 
 ## ピン/初期化
 
