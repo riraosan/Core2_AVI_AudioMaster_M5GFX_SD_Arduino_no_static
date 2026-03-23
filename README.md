@@ -10,6 +10,10 @@
 
 となっています。
 
+## サンプル動画
+
+https://x.com/riraosan_0901/status/2034570236255756642?s=46
+
 ## 使い方
 
 1. microSD を FAT32 で用意し、ルートに `output.avi`（**MJPEG + PCM(16‑bit/48.0k/モノ)**）を配置
